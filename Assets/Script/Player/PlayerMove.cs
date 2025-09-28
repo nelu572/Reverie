@@ -1,5 +1,6 @@
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class PlayerMove : MonoBehaviour
 {
@@ -9,7 +10,7 @@ public class PlayerMove : MonoBehaviour
     public float maxSpeed = 10;
     public float acceleration = 1;
     float speed = 0;
-
+    float prev_speed = 0;
     bool onGround;
     void Start()
     {
@@ -22,6 +23,7 @@ public class PlayerMove : MonoBehaviour
         if (Input.GetKey(KeyCode.A)) dir -= 1;
         if (Input.GetKey(KeyCode.D)) dir += 1;
 
+        prev_speed = rb.linearVelocity.x;
         if (dir == 0)
         {
             if (speed != 0)
@@ -31,9 +33,10 @@ public class PlayerMove : MonoBehaviour
         }
         else
         {
-            speed += dir * acceleration;
+            speed = prev_speed + dir * acceleration;
             speed = Mathf.Clamp(speed, -maxSpeed, maxSpeed);
         }
+        Debug.Log(speed);
         rb.linearVelocity = new Vector2(speed, rb.linearVelocity.y);
     }
 }
