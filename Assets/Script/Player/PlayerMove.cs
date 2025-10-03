@@ -1,41 +1,40 @@
 
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerMove : MonoBehaviour
 {
     [SerializeField] private GameObject GM;
-    Inputs input;
 
-    Rigidbody2D rb;
+    private Rigidbody2D rb;
 
     [SerializeField] private float jumpForce = 10;
     [SerializeField] private float maxSpeed = 10;
     [SerializeField] private float acceleration = 1;
-    float speed = 0;
-    float prev_speed = 0;
+    private float speed = 0;
+    private float prev_speed = 0;
 
-    bool onGround;
+    private bool onGround;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        input = GM.GetComponent<Inputs>();
     }
 
-    void Update()
-    {
-
-    }
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         Move();
-        Jump();
+        bool jump = Input.GetKey(KeyCode.Space);
+        if (jump)
+        {
+            Jump();
+        }
     }
 
-    void Move()
+    private void Move()
     {
         prev_speed = rb.linearVelocity.x;
-        bool left = input.Get_Keys(KeyCode.A);
-        bool right = input.Get_Keys(KeyCode.D);
+        bool left = Input.GetKey(KeyCode.A);
+        bool right = Input.GetKey(KeyCode.D);
         if (!(left ^ right))
         {
             if (speed != 0)
@@ -53,15 +52,30 @@ public class PlayerMove : MonoBehaviour
         }
         rb.linearVelocity = new Vector2(speed, rb.linearVelocity.y);
     }
-    void Jump()
+    private void Jump()
     {
-        OnGround_check();
-
+        onGround = OnGround_check();
+        // if (onGround)
+        // {
+        //     rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+        // }
     }
-    void OnGround_check()
+    private bool OnGround_check()
     {
-        RaycastHit2D[] hit = Physics2D.RaycastAll(rb.position, Vector3.down, transform.localScale.y);
-        Debug.DrawRay(rb.position, Vector2.down * 1, Color.red);
-        
+        int layerMask = LayerMask.GetMask("Ground", "Wall");
+
+        // 캐릭터의 바닥 크기 설정 (콜라이더 크기를 참고하는 게 가장 정확)
+        Vector2 boxSize = new Vector2(transform.localScale.x * 0.9f, 0.1f); // 가로 폭은 캐릭터, 세로는 얇게
+        float castDistance = 0.1f;  // 캐릭터 발 바로 아래 체크할 거리
+
+        // BoxCast (중심, 크기, 회전각, 방향, 거리, 레이어마스크)
+        RaycastHit2D hit = Physics2D.BoxCast(rb.position, boxSize, 0f, Vector2.down, castDistance, layerMask);
+
+        // Scene 뷰 디버그용 박스 그리기
+        Debug.DrawRay(rb.position, Vector2.down * castDistance, Color.red); // 중심선
+        Debug.DrawLine(rb.position + new Vector2(-boxSize.x / 2, 0), rb.position + new Vector2(-boxSize.x / 2, -castDistance), Color.green);
+        Debug.DrawLine(rb.position + new Vector2(boxSize.x / 2, 0), rb.position + new Vector2(boxSize.x / 2, -castDistance), Color.green);
+
+        return hit.collider != null;
     }
 }
