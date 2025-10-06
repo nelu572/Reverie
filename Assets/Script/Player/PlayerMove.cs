@@ -1,4 +1,5 @@
 
+using Unity.Collections;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -14,7 +15,6 @@ public class PlayerMove : MonoBehaviour
     private float speed = 0;
     private float prev_speed = 0;
 
-    private bool onGround;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -23,11 +23,7 @@ public class PlayerMove : MonoBehaviour
     private void FixedUpdate()
     {
         Move();
-        bool jump = Input.GetKey(KeyCode.Space);
-        if (jump)
-        {
-            Jump();
-        }
+        Jump();
     }
 
     private void Move()
@@ -54,28 +50,30 @@ public class PlayerMove : MonoBehaviour
     }
     private void Jump()
     {
-        onGround = OnGround_check();
-        // if (onGround)
-        // {
-        //     rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-        // }
+        bool jumpKey = Input.GetKeyDown(KeyCode.Space);
+        bool onGround = OnGround_check();
+        if (onGround)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+        }
     }
     private bool OnGround_check()
     {
         int layerMask = LayerMask.GetMask("Ground", "Wall");
+        float RayLength = transform.localScale.y + 0.0125f;
 
-        // 캐릭터의 바닥 크기 설정 (콜라이더 크기를 참고하는 게 가장 정확)
-        Vector2 boxSize = new Vector2(transform.localScale.x * 0.9f, 0.1f); // 가로 폭은 캐릭터, 세로는 얇게
-        float castDistance = 0.1f;  // 캐릭터 발 바로 아래 체크할 거리
+        Vector2 rightRayPosition = new Vector2(rb.position.x + (transform.localScale.x / 2), rb.position.y);
+        RaycastHit2D rightHit = Physics2D.Raycast(rightRayPosition, Vector3.down, RayLength, layerMask);
 
-        // BoxCast (중심, 크기, 회전각, 방향, 거리, 레이어마스크)
-        RaycastHit2D hit = Physics2D.BoxCast(rb.position, boxSize, 0f, Vector2.down, castDistance, layerMask);
+        Vector2 leftRayPosition = new Vector2(rb.position.x - (transform.localScale.x / 2), rb.position.y);
+        RaycastHit2D leftHit = Physics2D.Raycast(leftRayPosition, Vector3.down, RayLength, layerMask);
 
-        // Scene 뷰 디버그용 박스 그리기
-        Debug.DrawRay(rb.position, Vector2.down * castDistance, Color.red); // 중심선
-        Debug.DrawLine(rb.position + new Vector2(-boxSize.x / 2, 0), rb.position + new Vector2(-boxSize.x / 2, -castDistance), Color.green);
-        Debug.DrawLine(rb.position + new Vector2(boxSize.x / 2, 0), rb.position + new Vector2(boxSize.x / 2, -castDistance), Color.green);
+        Color rightColor = (rightHit.collider != null) ? Color.green : Color.red;
+        Color leftColor = (leftHit.collider != null) ? Color.green : Color.red;
 
-        return hit.collider != null;
+        Debug.DrawRay(rightRayPosition, Vector2.down * RayLength, rightColor);
+        Debug.DrawRay(leftRayPosition, Vector2.down * RayLength, leftColor);
+
+        return rightHit.collider != null || leftHit.collider != null;
     }
 }
