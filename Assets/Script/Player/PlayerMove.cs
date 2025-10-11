@@ -1,6 +1,3 @@
-
-using Unity.Collections;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerMove : MonoBehaviour
@@ -13,14 +10,30 @@ public class PlayerMove : MonoBehaviour
     [SerializeField] private float maxSpeed = 10;
     [SerializeField] private float acceleration = 1;
     private float speed = 0;
-    private float prev_speed = 0;
+    private float prevSpeed = 0;
 
+    [SerializeField] private float jumpBufferTime = 0.1f;
+    private float bufferTime;
+    [SerializeField] private bool jumpKey;
+
+    private bool leftKey;
+    private bool rightKey;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
     }
+    void Update()
+    {
+        leftKey = Input.GetKey(KeyCode.A);
+        rightKey = Input.GetKey(KeyCode.D);
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            jumpKey = true;
+            bufferTime = jumpBufferTime;
+        }
+    }
 
-    private void FixedUpdate()
+    void FixedUpdate()
     {
         Move();
         Jump();
@@ -28,10 +41,8 @@ public class PlayerMove : MonoBehaviour
 
     private void Move()
     {
-        prev_speed = rb.linearVelocity.x;
-        bool left = Input.GetKey(KeyCode.A);
-        bool right = Input.GetKey(KeyCode.D);
-        if (!(left ^ right))
+        prevSpeed = rb.linearVelocity.x;
+        if (!(leftKey ^ rightKey))
         {
             if (speed != 0)
             {
@@ -41,26 +52,34 @@ public class PlayerMove : MonoBehaviour
         else
         {
             int dir = 0;
-            if (left) dir = -1;
+            if (leftKey) dir = -1;
             else dir = 1;
-            speed = prev_speed + dir * acceleration;
+            speed = prevSpeed + dir * acceleration;
             speed = Mathf.Clamp(speed, -maxSpeed, maxSpeed);
         }
         rb.linearVelocity = new Vector2(speed, rb.linearVelocity.y);
     }
     private void Jump()
     {
-        bool jumpKey = Input.GetKeyDown(KeyCode.Space);
         bool onGround = OnGround_check();
-        if (onGround)
+        if (jumpKey)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            bufferTime -= Time.deltaTime;
+            if (bufferTime <= 0)
+            {
+                jumpKey = false;
+            }
+            if (onGround)
+            {
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+                jumpKey = false;
+            }
         }
     }
     private bool OnGround_check()
     {
         int layerMask = LayerMask.GetMask("Ground", "Wall");
-        float RayLength = transform.localScale.y + 0.0125f;
+        float RayLength = transform.localScale.y + 0.00390625f;
 
         Vector2 rightRayPosition = new Vector2(rb.position.x + (transform.localScale.x / 2), rb.position.y);
         RaycastHit2D rightHit = Physics2D.Raycast(rightRayPosition, Vector3.down, RayLength, layerMask);
